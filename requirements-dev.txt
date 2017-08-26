@@ -1,8 +1,0 @@
--r requirements.txt
--r requirements-test.txt
--r simple-server-echo/requirements.txt
-tox
-wheel
-sphinx_rtd_theme
-pypandoc
-twine
