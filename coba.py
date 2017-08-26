@@ -1,21 +1,45 @@
-from wsgiref.simple_server import make_server
+from flask import Flask, request, abort
 
-# Every WSGI application must have an application object - a callable
-# object that accepts two arguments. For that purpose, we're going to
-# use a function (note that you're not limited to a function, you can
-# use a class for example). The first argument passed to the function
-# is a dictionary containing CGI-style environment variables and the
-# second variable is the callable object (see PEP 333).
-def hello_world_app(environ, start_response):
-    status = '200 OK'  # HTTP Status
-    headers = [('Content-type', 'text/plain; charset=utf-8')]  # HTTP Headers
-    start_response(status, headers)
+from linebot import (
+    LineBotApi, WebhookHandler
+)
+from linebot.exceptions import (
+    InvalidSignatureError
+)
+from linebot.models import (
+    MessageEvent, TextMessage, TextSendMessage,
+)
 
-    # The returned object is going to be printed
-    return [b"Hello World"]
+app = Flask(__name__)
 
-with make_server('http://127.0.0.1:8000/', 8080, hello_world_app) as httpd:
-    print("Serving on port 8000...")
+line_bot_api = LineBotApi('YOUR_CHANNEL_ACCESS_TOKEN')
+handler = WebhookHandler('YOUR_CHANNEL_SECRET')
 
-    # Serve until process is killed
-    httpd.serve_forever()
+
+@app.route("/callback", methods=['POST'])
+def callback():
+    # get X-Line-Signature header value
+    signature = request.headers['X-Line-Signature']
+
+    # get request body as text
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    # handle webhook body
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+
+    return 'OK'
+
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=event.message.text))
+
+
+if __name__ == "__main__":
+    app.run()
