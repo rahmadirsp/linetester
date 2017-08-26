@@ -3,5 +3,4 @@ future
 line-bot-sdk
 flask
 responses
-json
 virtualenv
